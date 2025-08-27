@@ -363,19 +363,23 @@ public class Shell {
   public Object forEach(Object iterable, EvaluableFunction function) {
     if (iterable instanceof Iterator) {
       while (((Iterator<?>) iterable).hasNext()) {
-        function.evaluate(env, new ArrayList<>(List.of(((Iterator<?>) iterable).next())));
+        final Object result = function.evaluate(env, new ArrayList<>(List.of(((Iterator<?>) iterable).next())));
+        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
       }
     } else if (iterable instanceof Collection) {
       for (Object item : (Collection<?>) iterable) {
-        function.evaluate(env, new ArrayList<>(List.of(item)));
+        final Object result = function.evaluate(env, new ArrayList<>(List.of(item)));
+        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
       }
     } else if (iterable.getClass().isArray()) {
       for (int i = 0; i < Array.getLength(iterable); i++) {
-        function.evaluate(env, new ArrayList<>(List.of(Array.get(iterable, i))));
+        final Object result = function.evaluate(env, new ArrayList<>(List.of(Array.get(iterable, i))));
+        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
       }
     } else if (iterable instanceof Map) {
       for (Object key : ((Map<?, ?>) iterable).keySet()) {
-        function.evaluate(env, new ArrayList<>(List.of(key, ((Map<?, ?>) iterable).get(key))));
+        final Object result = function.evaluate(env, new ArrayList<>(List.of(key, ((Map<?, ?>) iterable).get(key))));
+        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
       }
     } else {
       throw new ShellException("Cannot iterate over " + iterable.getClass().getSimpleName());
@@ -392,11 +396,11 @@ public class Shell {
    * @return The result of the last executed statement in the loop.
    */
   public Object whileLoop(Evaluable condition, EvaluableFunction function) {
-    Object result = null;
     while (isTruthy(condition.evaluate(env))) {
-      result = function.evaluate(env, new ArrayList<>());
+      final Object result = function.evaluate(env, new ArrayList<>());
+      if (result instanceof ReturnValue) return ((ReturnValue) result).value;
     }
-    return result;
+    return null;
   }
 
   /**
@@ -474,13 +478,13 @@ class ShellMap extends HashMap<String, Object> {
 }
 
 /**
- * Represents the state of our shell envoirnment, including global variables and a stackframes
+ * Represents the state of our shell environment, including global variables and a stack frames
  */
 class Environment {
   /** The global scope, accessible from anywhere. */
   public final ShellMap global = new ShellMap();
   /** The stack of function frames */
-  public ArrayList<ShellMap> frames = new ArrayList<ShellMap>();
+  public ArrayList<ShellMap> frames = new ArrayList<>();
 
   /**
    * Thread unsafe recursion guard.
@@ -567,7 +571,7 @@ final class ShellException extends RuntimeException {
 final class ReturnValue {
   public final Object value;
 
-  ReturnValue(Object value) {
+  public ReturnValue(Object value) {
     this.value = value;
   }
 
@@ -587,7 +591,7 @@ interface Evaluable {
    * @param env The environment to use for evaluation.
    * @return The result of the evaluation.
    */
-  public Object evaluate(Environment env);
+  Object evaluate(Environment env);
 }
 
 /**
@@ -601,7 +605,7 @@ interface EvaluableFunction {
    * @param parameters The arguments passed to the function.
    * @return The return value of the function.
    */
-  public Object evaluate(Environment env, ArrayList<Object> parameters);
+  Object evaluate(Environment env, ArrayList<Object> parameters);
 }
 
 /**
@@ -1245,7 +1249,7 @@ class Parser {
     skipWhitespace();
     char c = peek();
 
-    if (Character.isDigit(c)) return parseNumber();
+    if (Character.isDigit(c) || c == '-') return parseNumber();
     if (c == '"' || c == '\'') return parseStringOrChar();
     if (c == '.') return parseClassResolution();
     if (c == '(') return parseFunctionDef();
@@ -1261,10 +1265,12 @@ class Parser {
    */
   private ConstantStatement parseNumber() {
     int start = pos;
+    match('-');
+
     while (!isAtEnd() && Character.isDigit(peek())) advance();
     if (peek() == '.') {
-      advance();
-      while (!isAtEnd() && Character.isDigit(peek())) advance();
+      do advance();
+      while (!isAtEnd() && Character.isDigit(peek()));
     }
 
     char suffix = Character.toLowerCase(peek());
@@ -1369,8 +1375,8 @@ class Parser {
    */
   private Evaluable parseAccess() {
     ArrayList<String> path = new ArrayList<>();
-    path.add(readIdentifier());
-    while (match('.')) path.add(readIdentifier());
+    do path.add(readIdentifier());
+    while (match('.'));
     return new AccessStatement(path.toArray(new String[0]));
   }
 
