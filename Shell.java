@@ -366,22 +366,22 @@ public class Shell {
       int length = Array.getLength(obj);
       for (int i = 0; i < length; i++) {
         final Object result = function.evaluate(env, new ArrayList<>(List.of(Array.get(obj, i))));
-        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
+        if (result instanceof ReturnValue) return result;
       }
     } else if (obj instanceof Iterator<?> iterator) {
       while (iterator.hasNext()) {
         final Object result = function.evaluate(env, new ArrayList<>(List.of(iterator.next())));
-        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
+        if (result instanceof ReturnValue) return result;
       }
     } else if (obj instanceof Iterable<?> iterable) {
       for (Object item : iterable) {
         final Object result = function.evaluate(env, new ArrayList<>(List.of(item)));
-        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
+        if (result instanceof ReturnValue) return result;
       }
     } else if (obj instanceof Map<?, ?> map) {
       for (Map.Entry<?, ?> entry : map.entrySet()) {
         final Object result = function.evaluate(env, new ArrayList<>(List.of(entry.getKey(), entry.getValue())));
-        if (result instanceof ReturnValue) return ((ReturnValue) result).value;
+        if (result instanceof ReturnValue) return result;
       }
     } else  {
       throw new ShellException("Cannot iterate over " + obj.getClass().getSimpleName());
@@ -451,6 +451,16 @@ public class Shell {
   public boolean isClass(Object obj) {
     return obj instanceof Class<?>;
   }
+
+  /**
+   * Returns true if a given object exists in the current scope
+   *
+   * @param name the name to look for in the environment
+   * @return true if the object exists
+   */
+  public boolean exists(String name) {
+    return env.get(name) != null;
+  }
 }
 
 /**
@@ -458,15 +468,25 @@ public class Shell {
  * It provides a safe toString() implementation to prevent infinite recursion
  * when printing environments that reference themselves.
  */
-class ShellMap extends HashMap<String, Object> {
+class ShellMap {
+  private HashMap<String, Object> map = new HashMap<>();
+
   /**
    * A static accessor for the underlying map.
    *
    * @param self The ShellMap instance.
    * @return The map itself.
    */
-  public static Map<String, Object> getMap(ShellMap self) {
-    return self;
+  public static HashMap<String, Object> getMap(ShellMap self) {
+    return self.map;
+  }
+
+  public Object put(String key, Object val) {
+    return map.put(key, val);
+  }
+
+  public Object get(String key) {
+    return map.get(key);
   }
 
   /**
@@ -842,9 +862,9 @@ record AssignmentStatement(AccessStatement left, Evaluable right) implements Eva
     }
 
     Class<?> targetClass = (toSet instanceof Class) ? (Class<?>) toSet : toSet.getClass();
-    for (Class<?> c : targetClass.getDeclaredClasses()) {
+    for (Class<?> currentClass = targetClass; currentClass != null; currentClass = currentClass.getSuperclass()) {
       try {
-        Field field = c.getDeclaredField(path[path.length - 1]);
+        Field field = currentClass.getDeclaredField(path[path.length - 1]);
         field.setAccessible(true);
         field.set(toSet, valueToAssign);
         return valueToAssign;
