@@ -4,6 +4,10 @@ init = () {
   globalThis = globalThis;
   setGlobal = globalThis.setGlobal;
 
+  "Simple true / false constants";
+  setGlobal("false", globalThis.isTruthy(0));
+  setGlobal("true", globalThis.isTruthy(1));
+
   "
     exports setGlobal function
     setGlobal function is used to set global variables from inside of function scopes
@@ -14,7 +18,10 @@ init = () {
   setGlobal("getGlobal", globalThis.getGlobal);
 
   "print stuff to the console";
-  setGlobal("print", globalThis.console.print);
+  setGlobal("print", (...stuff) {
+    if(eql((){}(), stuff), () { return(return()); });
+    globalThis.forEach(stuff, globalThis.console.print);
+  });
 
   "--- Types ---";
 
@@ -58,10 +65,36 @@ init = () {
   ";
   setGlobal("tryCatch", globalThis.tryCatch);
 
-  "--- Airthematic ---";
+  "--- Conditional logic ---";
   setGlobal("and", globalThis.and);
   setGlobal("or", globalThis.or);
   setGlobal("not", globalThis.not);
+  setGlobal("eql", .java.util.Objects.deepEquals);
+  setGlobal("isNull", .java.util.Objects.isNull);
+
+  "--- Other ---";
+
+  "Returns true if the give object is actually a class type";
+  setGlobal("isClass", globalThis.isClass);
+
+  "Return from n nested scopes, returnN(1, value) is same as return(value)";
+  setGlobal("returnN", (n, value) {
+    setGlobal(".value", value);
+    forEach(Range(1, n), (_) { (_){}(setGlobal(".value", return(getGlobal(".value")))); });
+    return(getGlobal(".value"));
+  });
+
+  "Returns true if the given variable exists in the current scope";
+  setGlobal("exists", globalThis.exists);
+
+  "Get a value from the parent scope, parent scope must me a function scope, not global";
+  setGlobal("getParentVar", (key) {
+    globalThis = globalThis;
+    frames = globalThis.env.frames;
+    map = globalThis.ShellMapClass.getMap(frames.get(.java.lang.Integer.sum(frames.size(), -3)));
+    return map.get(key);
+  });
 };
 
 init();
+
