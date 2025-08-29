@@ -116,13 +116,13 @@ You can access any Java class, instantiate it, and call its methods or access it
   ```
 
 - **Method & Field Access:** Use the dot `.` operator to access instance or static fields and methods.
-    ```java
-    "Get the static PI field from java.lang.Math";
-    pi = .java.lang.Math.PI;
+  ```java
+  "Get the static PI field from java.lang.Math";
+  pi = .java.lang.Math.PI;
 
-    "Call the instance method 'getAbsolutePath' on the file object";
-    path = file.getAbsolutePath();
-    ```
+  "Call the instance method 'getAbsolutePath' on the file object";
+  path = file.getAbsolutePath();
+  ```
 
 ### Operators
 
@@ -152,7 +152,7 @@ The language treats functions as values. They can be defined, assigned to variab
   ```java
   "Define a function and assign it to the variable 'add'";
   add = (a, b) {
-    "language has no +, -, * or / oprators so need to call a function";
+    "language has no +, -, * or / operators so need to call a function";
     globalThis.ReturnValueClass(.java.lang.Integer.sum(a, b));
   };
 
@@ -169,10 +169,73 @@ The language treats functions as values. They can be defined, assigned to variab
 - **Variadic Functions:** You can define a function that accepts a variable number of arguments by prefixing the last parameter name with `...`. The variadic arguments will be passed as a `List`.
   ```java
   printAll = (...numbers) {
-      .java.lang.System.out.println(numbers);
+    .java.lang.System.out.println(numbers);
   };
 
   "prints `[1, 2, 3, 4, 5]`";
   printAll(1, 2, 3, 4, 5);
-
   ```
+
+## Init.Shell
+
+This file contains a collection of useful function that you probably want to have.
+These functions are nothing special, they are just imported from the globalThis instance.
+
+Of course. Here is a markdown documentation table for only the functions and constants defined in the `init` script you provided.
+
+### Core Functions and Constants
+
+| Name | Type | Signature / Value | Description |
+| :--- | :--- | :--- | :--- |
+| **`globalThis`** | Constant | `Shell`  | A reference to the current `Shell` instance. |
+| **`true`** | Constant | `true` | Boolean `true`. |
+| **`false`** | Constant | `false` | Boolean `false`. |
+| **`Shell`** | Constant | `Shell.class` | The Java `Class` object for the `Shell` interpreter. |
+| **`Range`** | Constant | `Shell.RangeClass` | The Java `Class` object for creating numerical ranges, for use in `forEach` loops. e.g., `forEach(Range(1, 10), print);` |
+| **`print`** | Function | `(...stuff)` | Prints one or more arguments to the terminal. |
+| **`setGlobal`** | Function | `(name, value)` | Sets a variable in the global scope, making it accessible from anywhere. |
+| **`getGlobal`** | Function | `(name)` | Retrieves a variable from the global scope, bypassing any local variables with the same name. |
+| **`exists`** | Function | `(variableName)` | Returns `true` if a variable with the given name exists in the current scope. |
+| **`getParentVar`**| Function | `(key)` | Retrieves a variable from the direct parent function's scope. Does not work for the global scope. |
+| **`isClass`** | Function | `(obj)` | Returns `true` if the provided object is a Java `Class` type. |
+
+### Conditional Logic & Control Flow
+
+| Name | Type | Signature | Description |
+| :--- | :--- | :--- | :--- |
+| **`return`** | Constant | `Shell.ReturnValueClass` | The class used to return a value from a function. Use as `return(value);`. |
+| **`returnN`** | Function | `(n, value)` | Returns a `value` from `n` nested function scopes. `returnN(1, v)` is equivalent to `return(v)`. |
+| **`if`** | Function | `(condition, functionIfTrue)` | Executes `functionIfTrue` if the `condition` evaluates to a truthy value. |
+| **`ifElse`** | Function | `(condition, funcIfTrue, funcIfFalse)` | Executes `funcIfTrue` if `condition` is truthy, otherwise executes `funcIfFalse`. |
+| **`while`** | Function | `(condition, loopBodyFunc)` | Executes `loopBodyFunc` repeatedly as long as `condition` evaluates to a truthey value. |
+| **`forEach`** | Function | `(iterable, functionPerItem)` | Executes `functionPerItem` for each item in an `iterable` (like an array or `Range`). |
+| **`tryCatch`** | Function | `(tryBlock, catchBlock)` | Executes `tryBlock`. If a `ShellException` is thrown, executes `catchBlock`. |
+| **`eql`** | Function | `(a, b)` | Performs a deep equality check on two Java objects. Returns `true` if they are equal. |
+| **`and`** | Function | `(a, b)` | Returns `true` if both `a` and `b` are truthy. |
+| **`or`** | Function | `(a, b)` | Returns `true` if either `a` or `b` is truthy. |
+| **`not`** | Function | `(a)` | Returns `true` if `a` is falsey, and `false` if `a` is truthy. |
+| **`isNull`** | Function | `(a)` | Returns `true` if the object `a` is `null`. |
+
+## Pitfalls
+
+1. There is a reason why `exists` exists. If a variable is set to null, the identifier is considered deleted.
+  Eg: `a = () {} (); print(a);` will cause an error, use `if(exists("a"), () { print(getParentVar("a")); });` instead.
+2. `return()` is just a value not a keyword. This means you can have an instance of return without actually returning anything. Infact, this is how returnN function is implemented.
+  ```java
+  () {
+    "Does Not return";
+    () {} (x = return(123));
+
+    "This will print `ReturnValue(123)`";
+    print(x);
+
+    "This will cause the function to return 123";
+    x;
+  } ();
+  ```
+3. This language doesn't really have any keywords, so you can just reassign any of these functions or so called 'constants'. But it is highy advised against.
+4. The recommended way to pass variables through function scopes is to use `setGlobal(".age", age);` to set a variable `age` and then `getGlobal(".age")` in the sub-function to get it. This will likely be faster then getParent.
+5. The language does NOT coerce types, so you can't use integers instead of floats (must use `5.0` and not `5`).
+6. No mathematical operators like `+`, `-`, `*`, `/` are provided. While it is feasible to implement these using stack based evaluation, it makes the code ugly, so i'm just not doing it.
+7. `a = b().c;` pattern does not work. Use `a = b(); a = a.c;` instead.
+
