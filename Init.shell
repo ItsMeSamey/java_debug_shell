@@ -92,7 +92,7 @@ init = () {
     globalThis = globalThis;
     frames = globalThis.env.frames;
     map = globalThis.ShellMapClass.getMap(frames.get(.java.lang.Integer.sum(frames.size(), -3)));
-    return map.get(key);
+    return(map.get(key));
   });
 };
 
